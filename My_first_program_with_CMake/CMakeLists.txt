@@ -1,3 +1,4 @@
+﻿#Copyright(C) Alonso Gonsalo Valdivia Quispe
 PROJECT(OpenGLProyect)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
