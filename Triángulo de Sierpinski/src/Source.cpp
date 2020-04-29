@@ -8,27 +8,121 @@
 
 Sierpinski *T;
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow* window)
-{
-	
-}
+#define MAX_LEVEL 5
 
-void processKey(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-	
-}
+int level;
+int wire;
+int wire_Pointer;
+float gX, gY;
+unsigned int Pointer = 0;
+bool init = false;
+
+
 
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void processInput(GLFWwindow* window)
+{
+
+}
+
+void processKey(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	if (key == GLFW_KEY_UP && (action == GLFW_PRESS)) {
+		level += 1;
+		if (level >= MAX_LEVEL)level = MAX_LEVEL+1;
+	}
+	if (key == GLFW_KEY_DOWN && (action == GLFW_PRESS)) {
+		level -= 1;
+		if (level <= -1)level = -1;
+	}
+	if (key == GLFW_KEY_W && (action == GLFW_PRESS)) {
+		wire = (wire + 1) % 2;
+	}
+	if (key == GLFW_KEY_S && (action == GLFW_PRESS)) {
+		wire_Pointer = (wire_Pointer + 1) % 2;
+	}
+}
+
+static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
+{
+	gX = xpos;
+	gY = ypos;
+}
+
+unsigned int SetVao(std::vector<float> coor) {
+	/*for (int i = 0; i < sz(coor); ++i) {
+		std::cout << coor[i] << ' ';
+	}
+	std::cout<<std::endl;*/
+	unsigned int VBO, VAO, EBO;
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	//glGenBuffers(1, &EBO);
+	// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+	glBindVertexArray(VAO);
+	
+	/*for (int i = 0; i < sz(ver); i+=3) {
+		std::cout << ver[i] << ' ' << ver[i + 1] << ' ' << ver[i + 2] << std::endl;
+	}*/
+	/*float ver[] = {
+		-0.5f,  0.0f, 0.0f,
+		 0.5f,  0.0f, 0.0f,
+		 0.0f,  0.5f, 0.0f
+	};*/
+
+	//float vertices[1024];
+	//std::cout << sz(ver);
+	//std::reverse(ver.begin(), ver.end());
+	//std::copy(ver.begin(), ver.end(), vertices);
+	//std::cout << sz(ver);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float)*sz(coor), &coor[0], GL_STATIC_DRAW);
+
+	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	return VAO;
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+	double xpos = 0; double ypos = 0;
+	if (button == GLFW_MOUSE_BUTTON_RIGHT && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+		glfwGetCursorPos(window, &xpos, &ypos);
+		gX = (xpos*0.0025)-(400*0.0025);
+		gY = 2.0/600.0*(600-ypos-300);
+		std::vector<float> coor;
+		if (T->search(T->I, pto{ gX,gY },coor)) {
+			Pointer = SetVao(coor);
+			init = true;
+		}
+		else {
+			std::cout << "No hallado" << std::endl;
+		}
+	}
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+		init = (init + 1) % 2;
+	}
+}
+
+
+
 int main()
 {
-	int level = 4;
+	level = MAX_LEVEL;
 	T = new Sierpinski();
 	T->I = new Triangle(pto{-1.0,-1.0}, pto{0.0,1.0}, pto{1.0,-1.0});
 	T->AutoDiv(T->I,level);
+	level = MAX_LEVEL + 1;
 	// glfw: initialize and configure
 	// ------------------------------
 	glfwInit();
@@ -61,7 +155,6 @@ int main()
 		std::cout << "Failed to initialize GLAD" << std::endl;
 		return -1;
 	}
-
 	unsigned int indices[] = {  // note that we start from 0!
 		0, 1, 2,// second Triangle
 		3, 4, 5,
@@ -96,7 +189,7 @@ int main()
 
 	// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
+	
 	// remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
 	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
@@ -120,7 +213,7 @@ int main()
 	// -----------
 	std::vector<int> IDSH_por_level(level+1);
 	float R = 0, G = 0, B = 0;
-	for (int i = 0; i < level+1; ++i) {
+	for (int i = 0; i < sz(IDSH_por_level); ++i) {
 
 		S.setShader(R, G, B);
 		IDSH_por_level[i] = S.createShader();
@@ -130,6 +223,8 @@ int main()
 	IDSH[0] = S.createShader(); S.setShader(46.667/100, 86.681/100, 87.451/100);//azul
 	IDSH[1] = S.createShader(); S.setShader(0, 0, 0);//rojo
 	IDSH[2] = S.createShader();// S.setShader(0, 0, 1);//verde
+	S.setShader(46.667 / 100, 86.681 / 100, 87.451 / 100, 0.3);
+	int IDSH_Pointer = S.createShader();
 	int color = 0;
 	while (!glfwWindowShouldClose(window))
 	{
@@ -139,6 +234,7 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT);
 		processInput(window);
 		glfwSetKeyCallback(window, processKey);
+		glfwSetMouseButtonCallback(window, mouse_button_callback);
 		//std::cout<<nave.vertices[0];
 		// render
 		// ------
@@ -147,26 +243,30 @@ int main()
 		glBindVertexArray(VAO); 
 		int j = 0;
 		color = 0;
-		int click = 0;
+		if (wire)glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		else glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		for (int i = 0; i <= level; ++i) {
 			//std::cout << j << ' ' << pow(3, i) * 3 << std::endl;
 			glUseProgram(IDSH_por_level[i]);
-			if(click)glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-			else glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-			//click = (click + 1) % 2;
 			glDrawArrays(GL_TRIANGLES, j, j+pow(3,i)*3);
 			
 			j = j+(pow(3, i) * 3);
 			color = (color + 1) % 3;
 		}
-		
-		
+		if (init) {
+			if(wire_Pointer)glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			else glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			glBindVertexArray(Pointer);
+			glUseProgram(IDSH_Pointer);
+			glDrawArrays(GL_TRIANGLES, 0, 3);
+		}
 		// glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
 		// -------------------------------------------------------------------------------
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}
 	glDeleteVertexArrays(1, &VAO);
+	glDeleteVertexArrays(1, &Pointer);
 	glDeleteBuffers(1, &VBO);
 	glDeleteBuffers(1, &EBO);
 
