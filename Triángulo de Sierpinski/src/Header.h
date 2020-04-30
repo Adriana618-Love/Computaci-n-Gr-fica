@@ -8,6 +8,7 @@
 #include<string>
 #include<queue>
 #include<list>
+#include<algorithm>
 
 #define sz(x) (int)x.size()
 #define forn(i,n) for(int i=0;i<n;++i)
@@ -18,11 +19,39 @@ struct pto
 	float y;
 };
 
+bool my_func(pto a, pto b) {
+	return a.x >= b.x;
+}
+
 pto Middle(pto p1, pto p2) {
 	return pto{ (p1.x + p2.x) / 2,(p1.y + p2.y) / 2 };
 }
 
+float sign(pto p1, pto p2, pto p3)
+{
+	return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
+}
+
+bool PointInTriangle(pto pt,std::vector<pto> & P)
+{
+	//std::cout << P[0].x << ' ' << P[0].y << std::endl;
+	//std::cout << P[1].x << ' ' << P[1].y << std::endl;
+	//std::cout << P[2].x << ' ' << P[2].y << std::endl;
+	float d1, d2, d3;
+	bool has_neg, has_pos;
+
+	d1 = sign(pt, P[0], P[1]);
+	d2 = sign(pt, P[1], P[2]);
+	d3 = sign(pt, P[2], P[0]);
+
+	has_neg = (d1 < 0) || (d2 < 0) || (d3 < 0);
+	has_pos = (d1 > 0) || (d2 > 0) || (d3 > 0);
+
+	return !(has_neg && has_pos);
+}
+
 bool inPolygon(pto v, std::vector<pto>& P) {
+	sort(P.begin(), P.end(),my_func);
 	bool c = false;
 	forn(i, sz(P)) {
 		int j = (i + 1) % sz(P);
@@ -56,22 +85,22 @@ public:
 			"   FragColor = outColor;\n"
 			"}\n\0";
 	}
-	void setShader(float _R, float _G, float _B, float _A = 1.0) {
+	void setShader(float _R, float _G, float _B, float _A = 0.0) {
 		std::string R = std::to_string(_R) + "f";
 		std::string G = std::to_string(_G) + "f";
 		std::string B = std::to_string(_B) + "f";
 		std::string A = std::to_string(_A) + "f";
 		VS = "#version 330 core\n"
-			"layout (location = 0) in vec3 aPos;\n"
+			"layout (location = 0) in vec4 aPos;\n"
 			"void main()\n"
 			"{\n"
-			"   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+			"   gl_Position = vec4(aPos.x, aPos.y, aPos.z, aPos.w);\n"
 			"}\0";
 		FS = "#version 330 core\n"
 			"out vec4 FragColor;\n"
 			"void main()\n"
 			"{\n"
-			"   FragColor = vec4(" + R + ", " + G + ", " + B + ", " + A + ");\n"
+			"   FragColor = vec4("+R+", "+G+", "+B+",0.0f);\n"
 			"}\n\0";
 	}
 	int createShader() {
@@ -190,7 +219,7 @@ public:
 		//V = new Vao();
 		//V->setVao(coor);
 	}
-	std::vector<pto> getCoor() { return coor; }
+	std::vector<pto> getCoor()  { return coor; }
 	void draw() {
 		//glUseProgram(C.IDSH);
 		//glBindVertexArray(V->getVao());
@@ -215,60 +244,49 @@ class Sierpinski {
 public:
 	Triangle* I;
 	std::vector<float> VAO;
+	std::vector<int> idx_Tr;
 	Sierpinski() {
 		I = nullptr;
 	}
 	void insert(pto p) {
 		Triangle* P = I;
-		if (!search(P, p))return;
+		std::vector<float> buffer;
+		if (!search(P, p,buffer))return;
 		Div(P);
 	}
 
-	void AutoDiv(Triangle *& P,int lr) {
-		std::list<Triangle*> Q;/*
-		std::vector<float> points = P->getVao();
-		for (int i = 0; i < sz(points); ++i) {
-			VAO.push_back(points[i]);
-		}
-		if (lvl < lr) {
-			P->childrens[0] = new Triangle(P->getCoor()[0], Middle(P->getCoor()[0], P->getCoor()[1]), Middle(P->getCoor()[0], P->getCoor()[2]));
-			P->childrens[1] = new Triangle(Middle(P->getCoor()[0], P->getCoor()[1]), P->getCoor()[1], Middle(P->getCoor()[1], P->getCoor()[2]));
-			P->childrens[2] = new Triangle(Middle(P->getCoor()[0], P->getCoor()[2]), Middle(P->getCoor()[1], P->getCoor()[2]), P->getCoor()[2]);
-			P->childrens[0]->C.setColor(P->C.R, P->C.G, P->C.B);
-			P->childrens[1]->C.setColor(P->C.R, P->C.G, P->C.B);
-			P->childrens[2]->C.setColor(P->C.R, P->C.G, P->C.B);
-			for (int i = 0; i < 3; ++i) {
-				AutoDiv(P->childrens[i],lr, lvl + 1);
-			}
-		}*/
+	void AutoDiv(Triangle * P,int lr) {
+		std::cout << P->coor[0].x << ' ' << P->coor[0].y << std::endl;
+		std::list<Triangle*> Q;
 		int lvl = 0;
 		Q.push_back(P);
 		int li = 0;
 		for (int i = 0; i <= lr; ++i) {
 			li += (pow(3, i));
 		}
-		//std::cout << li << std::endl;
-		while (lvl < li) {
+		while (sz(Q)) {
 			P = Q.front();
 			Q.pop_front();
 			std::vector<float> points = P->getVao();
 			for (int i = 0; i < sz(points); ++i) {
 				VAO.push_back(points[i]);
 			}
-			P->childrens[0] = new Triangle(P->getCoor()[0], Middle(P->getCoor()[0], P->getCoor()[1]), Middle(P->getCoor()[0], P->getCoor()[2]));
-			P->childrens[1] = new Triangle(Middle(P->getCoor()[0], P->getCoor()[1]), P->getCoor()[1], Middle(P->getCoor()[1], P->getCoor()[2]));
-			P->childrens[2] = new Triangle(Middle(P->getCoor()[0], P->getCoor()[2]), Middle(P->getCoor()[1], P->getCoor()[2]), P->getCoor()[2]);
-			P->childrens[0]->C.setColor(P->C.R, P->C.G, P->C.B);
-			P->childrens[1]->C.setColor(P->C.R, P->C.G, P->C.B);
-			P->childrens[2]->C.setColor(P->C.R, P->C.G, P->C.B);
-			Q.push_back(P->childrens[0]);
-			Q.push_back(P->childrens[1]);
-			Q.push_back(P->childrens[2]);
+			if (lvl < li) {
+				P->childrens[0] = new Triangle(P->getCoor()[0], Middle(P->getCoor()[0], P->getCoor()[1]), Middle(P->getCoor()[0], P->getCoor()[2]));
+				P->childrens[1] = new Triangle(Middle(P->getCoor()[0], P->getCoor()[1]), P->getCoor()[1], Middle(P->getCoor()[1], P->getCoor()[2]));
+				P->childrens[2] = new Triangle(Middle(P->getCoor()[0], P->getCoor()[2]), Middle(P->getCoor()[1], P->getCoor()[2]), P->getCoor()[2]);
+				P->childrens[0]->C.setColor(P->C.R, P->C.G, P->C.B);
+				P->childrens[1]->C.setColor(P->C.R, P->C.G, P->C.B);
+				P->childrens[2]->C.setColor(P->C.R, P->C.G, P->C.B);
+				Q.push_back(P->childrens[0]);
+				Q.push_back(P->childrens[1]);
+				Q.push_back(P->childrens[2]);
+			}
 			++lvl;
 		}
 	}
 
-	void Div(Triangle*& P) {
+	void Div(Triangle* P) {
 		P->childrens[0] = new Triangle(P->getCoor()[0], Middle(P->getCoor()[0], P->getCoor()[1]), Middle(P->getCoor()[0], P->getCoor()[2]));
 		P->childrens[1] = new Triangle(Middle(P->getCoor()[0], P->getCoor()[1]), P->getCoor()[1], Middle(P->getCoor()[1], P->getCoor()[2]));
 		P->childrens[2] = new Triangle(Middle(P->getCoor()[0], P->getCoor()[1]), Middle(P->getCoor()[1], P->getCoor()[2]), P->getCoor()[2]);
@@ -277,29 +295,30 @@ public:
 		P->childrens[2]->C.setColor(P->C.R, P->C.G, P->C.B);
 	}
 
-	int search(Triangle*& P, pto p) {
-		while (P) {
-			if (inPolygon(p, P->coor)) {
+	int search(Triangle* P, pto p, std::vector<float> &_vao) {
+		while (P->childrens[0]) {
+			if (inPolygon(p, P->childrens[0]->coor)) {
 				P = P->childrens[0];
 			}
-			else if (inPolygon(p, P->coor)) {
+			else if (inPolygon(p, P->childrens[1]->coor)) {
 				P = P->childrens[1];
 			}
-			else if (inPolygon(p, P->coor)) {
+			else if (inPolygon(p, P->childrens[2]->coor)) {
 				P = P->childrens[2];
 			}
-			else if (inPolygon(p, P->coor)) {
-				//iluminar();
-				return false;
+			else if (PointInTriangle(p, P->coor)) {
+				_vao = P->getVao();
+				return true;
 			}
 			else {
 				return false;
 			}
 		}
+		_vao = P->getVao();
 		return true;
 	}
 
-	void qDraw(Triangle * &P) {
+	void qDraw(Triangle * P) {
 		if (P->childrens[0]) {
 			qDraw(P->childrens[0]);
 			qDraw(P->childrens[1]);

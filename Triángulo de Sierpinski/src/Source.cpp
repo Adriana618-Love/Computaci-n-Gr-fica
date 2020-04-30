@@ -54,36 +54,12 @@ static void cursor_position_callback(GLFWwindow* window, double xpos, double ypo
 }
 
 unsigned int SetVao(std::vector<float> coor) {
-	/*for (int i = 0; i < sz(coor); ++i) {
-		std::cout << coor[i] << ' ';
-	}
-	std::cout<<std::endl;*/
 	unsigned int VBO, VAO, EBO;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
-	//glGenBuffers(1, &EBO);
-	// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
 	glBindVertexArray(VAO);
-	
-	/*for (int i = 0; i < sz(ver); i+=3) {
-		std::cout << ver[i] << ' ' << ver[i + 1] << ' ' << ver[i + 2] << std::endl;
-	}*/
-	/*float ver[] = {
-		-0.5f,  0.0f, 0.0f,
-		 0.5f,  0.0f, 0.0f,
-		 0.0f,  0.5f, 0.0f
-	};*/
-
-	//float vertices[1024];
-	//std::cout << sz(ver);
-	//std::reverse(ver.begin(), ver.end());
-	//std::copy(ver.begin(), ver.end(), vertices);
-	//std::cout << sz(ver);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float)*sz(coor), &coor[0], GL_STATIC_DRAW);
-
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
@@ -164,40 +140,19 @@ int main()
 	unsigned int VBO, VAO, EBO;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
-	//glGenBuffers(1, &EBO);
-	// bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
 	glBindVertexArray(VAO);
 	std::vector<float> ver = T->VAO;
-	/*for (int i = 0; i < sz(ver); i+=3) {
-		std::cout << ver[i] << ' ' << ver[i + 1] << ' ' << ver[i + 2] << std::endl;
-	}*/
-	
-	
-	//float vertices[1024];
 	std::cout << sz(ver);
-	//std::reverse(ver.begin(), ver.end());
-	//std::copy(ver.begin(), ver.end(), vertices);
 	std::cout << sz(ver);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(float)*sz(ver), &ver[0], GL_STATIC_DRAW);
 
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
 
 	// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	
-	// remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-	// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-	// VAOs requires a call 
-
-	// uncomment this call to draw in wireframe polygons.
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
 /*PROFESOR_____NOTA*/
 	/*
@@ -208,7 +163,6 @@ int main()
 				SI PRESIONA N+C, EL COLOR AZUL DEL TRIÁNGULO 2 SE BORRARÁ
 
 	*/
-	//Deje esto apropósito para que vea el mensaje de arriba, solo borrelo y verá que todo compila
 	// render loop
 	// -----------
 	std::vector<int> IDSH_por_level(level+1);
@@ -225,7 +179,6 @@ int main()
 	IDSH[2] = S.createShader();// S.setShader(0, 0, 1);//verde
 	S.setShader(46.667 / 100, 86.681 / 100, 87.451 / 100, 0.3);
 	int IDSH_Pointer = S.createShader();
-	int color = 0;
 	while (!glfwWindowShouldClose(window))
 	{
 		// input
@@ -242,16 +195,13 @@ int main()
 		 // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
 		glBindVertexArray(VAO); 
 		int j = 0;
-		color = 0;
 		if (wire)glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		else glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		for (int i = 0; i <= level; ++i) {
-			//std::cout << j << ' ' << pow(3, i) * 3 << std::endl;
 			glUseProgram(IDSH_por_level[i]);
-			glDrawArrays(GL_TRIANGLES, j, j+pow(3,i)*3);
+			glDrawArrays(GL_TRIANGLES, j, pow(3,i)*3);
 			
 			j = j+(pow(3, i) * 3);
-			color = (color + 1) % 3;
 		}
 		if (init) {
 			if(wire_Pointer)glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
